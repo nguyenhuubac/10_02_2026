@@ -18,7 +18,7 @@ TARGET_MODELS = ["gemini-3-pro-preview", "gemini-3-flash-preview"]
 st.set_page_config(page_title="Trợ lý Giáo án Gen-3", page_icon="⚡", layout="wide")
 
 st.title(f"⚡ Trợ lý Thẩm định Giáo án")
-st.markdown(f"Đang kích hoạt chế độ Preview cho: **{', '.join(TARGET_MODELS)}**")
+#st.markdown(f"Đang kích hoạt chế độ Preview cho: **{', '.join(TARGET_MODELS)}**")
 
 # --- HÀM XỬ LÝ FILE ---
 def read_pdf(file):
