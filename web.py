@@ -17,7 +17,7 @@ TARGET_MODELS = ["gemini-3-pro-preview", "gemini-3-flash-preview"]
 # --- CẤU HÌNH TRANG ---
 st.set_page_config(page_title="Trợ lý Giáo án Gen-3", page_icon="⚡", layout="wide")
 
-st.title(f"⚡ Trợ lý Thẩm định Giáo án (Gemini 3 Preview)")
+st.title(f"⚡ Trợ lý Thẩm định Giáo án")
 st.markdown(f"Đang kích hoạt chế độ Preview cho: **{', '.join(TARGET_MODELS)}**")
 
 # --- HÀM XỬ LÝ FILE ---
@@ -101,7 +101,7 @@ def generate_content_with_retry(prompt, keys_list):
 col1, col2 = st.columns([1, 2]) 
 
 with col1:
-    st.info("📂 **Khu vực Tải file**")
+    st.info("📂 **Tải file**")
     uploaded_file = st.file_uploader("Chọn giáo án (PDF/Word)", type=["pdf", "docx"])
 
 if uploaded_file is not None:
@@ -120,14 +120,14 @@ if uploaded_file is not None:
         # 2. Nút kiểm tra
         with col2:
             st.success(f"✅ File đã nhận! Sẵn sàng thử nghiệm trên {len(TARGET_MODELS)} models.")
-            if st.button("🔍 Kiểm tra với Gemini 3 Preview", type="primary"):
+            if st.button("🔍 Kiểm tra", type="primary"):
                 with st.status("Đang khởi động tiến trình xử lý...", expanded=True) as status:
                     
-                    status.write("🔄 Đang lấy danh sách Key từ Drive...")
+                    status.write("🔄 Đang lấy danh sách")
                     keys_list = load_keys_from_drive(DRIVE_FILE_LINK)
                     
                     if keys_list:
-                        status.write(f"🔐 Đã nạp {len(keys_list)} Key. Đang thử kết nối Gemini 3...")
+                        status.write(f"🔐 Đã nạp {len(keys_list)} Key. Đang kết nối...")
                         
                         prompt = f"""
                         Bạn là Chuyên gia Sư phạm (Sử dụng model Gemini 3 thế hệ mới).
@@ -138,19 +138,19 @@ if uploaded_file is not None:
 
                         YÊU CẦU OUTPUT (Markdown):
                         
-                        ## 1. Tổng quan (Overview)
+                        ## 1. Tổng quan
                         * Đánh giá chất lượng: .../10
                         * Nhận định chung: ...
 
-                        ## 2. Phân tích Sâu (Deep Analysis)
+                        ## 2. Phân tích Sâu
                         * **Mục tiêu:** Phân tích kỹ tính khả thi và định lượng.
                         * **Hoạt động:** Phân tích dòng chảy tư duy (Flow) của học sinh.
                         * **Công nghệ:** Đánh giá việc ứng dụng CNTT/AI trong bài (nếu có).
 
-                        ## 3. Các lỗi cần khắc phục ngay (Critical)
+                        ## 3. Các lỗi cần khắc phục ngay
                         * ...
 
-                        ## 4. Góc Sáng tạo (Creative Corner)
+                        ## 4. Góc Sáng tạo
                         * Đề xuất 1 hoạt động thay thế "Wow" để gây ấn tượng mạnh cho học sinh.
                         """
                         
@@ -177,4 +177,4 @@ if uploaded_file is not None:
 
 else:
     with col2:
-        st.info("👈 Mời bạn tải giáo án lên để trải nghiệm Gemini 3.")
+        st.info("👈 Mời bạn tải giáo án lên")
