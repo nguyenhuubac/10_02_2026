@@ -100,32 +100,55 @@ def generate_content_with_retry(prompt, keys_list):
     # Nếu chạy hết tất cả Key và Model mà vẫn lỗi
     raise Exception("Tất cả API Key và Model đều thất bại! Vui lòng kiểm tra lại quyền truy cập Preview.")
 
-# --- HÀM TẠO FILE WORD KẾT QUẢ (Mới thêm) ---
+# --- HÀM TẠO FILE WORD KẾT QUẢ (Đã chỉnh sửa theo yêu cầu) ---
 def create_docx_file(text_content):
     doc = Document()
     doc.add_heading('KẾT QUẢ THẨM ĐỊNH GIÁO ÁN', 0)
     
-    # Xử lý sơ bộ Markdown sang Word
+    # Cờ đánh dấu: Chưa gặp tiêu đề chính thì chưa ghi (để bỏ qua đoạn chào hỏi)
+    is_main_content = False
+    
     for line in text_content.split('\n'):
         line = line.strip()
         if not line:
             continue
             
-        if line.startswith('## '):
-            doc.add_heading(line.replace('## ', ''), level=1)
-        elif line.startswith('### '):
-            doc.add_heading(line.replace('### ', ''), level=2)
-        elif line.startswith('* ') or line.startswith('- '):
-            doc.add_paragraph(line[2:], style='List Bullet')
-        else:
-            doc.add_paragraph(line)
+        # 1. Logic bỏ qua đoạn chào hỏi (Intro)
+        # Chỉ bắt đầu ghi khi gặp tiêu đề mục 1 (Bắt đầu bằng ## 1)
+        if line.startswith("## 1"):
+            is_main_content = True
             
-    # Lưu vào bộ nhớ đệm (RAM)
+        if not is_main_content:
+            continue # Bỏ qua dòng này nếu chưa đến nội dung chính
+
+        # 2. Xử lý làm sạch dấu ** (bôi đậm markdown) để văn bản sạch
+        # Ví dụ: "**Mục tiêu:**" sẽ thành "Mục tiêu:"
+        clean_line = line.replace('**', '').replace('__', '') 
+
+        # 3. Phân loại và ghi vào Word
+        if clean_line.startswith('## '):
+            # Tiêu đề lớn (Level 1)
+            doc.add_heading(clean_line.replace('## ', ''), level=1)
+            
+        elif clean_line.startswith('### '):
+            # Tiêu đề nhỏ (Level 2)
+            doc.add_heading(clean_line.replace('### ', ''), level=2)
+            
+        elif clean_line.startswith('* ') or clean_line.startswith('- '):
+            # Gạch đầu dòng -> Chuyển thành Bullet point trong Word
+            # Xóa ký tự * hoặc - ở đầu câu đi
+            content_text = clean_line[2:] 
+            doc.add_paragraph(content_text, style='List Bullet')
+            
+        else:
+            # Văn bản thường -> Tự động xuống dòng thành đoạn văn mới
+            doc.add_paragraph(clean_line)
+            
+    # Lưu vào bộ nhớ đệm
     bio = BytesIO()
     doc.save(bio)
     bio.seek(0)
     return bio
-
 # --- GIAO DIỆN CHÍNH ---
 col1, col2 = st.columns([1, 2]) 
 
