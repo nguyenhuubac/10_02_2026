@@ -6,6 +6,7 @@ import requests
 import json
 import random
 import time
+from io import BytesIO
 
 # --- CẤU HÌNH LIÊN KẾT FILE KEY ---
 DRIVE_FILE_LINK = "https://drive.google.com/file/d/1iBZqNSs6VyhFB5hQldG_5XBPKFtMfGuV/view?usp=sharing"
@@ -56,6 +57,8 @@ def load_keys_from_drive(url):
         st.error(f"Lỗi xử lý link Drive: {e}")
         return []
 
+from io import BytesIO # Thêm thư viện xử lý file trên RAM
+
 # --- HÀM GỌI GEMINI ĐA TẦNG (MULTI-MODEL RETRY) ---
 def generate_content_with_retry(prompt, keys_list):
     available_keys = keys_list.copy()
@@ -96,6 +99,32 @@ def generate_content_with_retry(prompt, keys_list):
             
     # Nếu chạy hết tất cả Key và Model mà vẫn lỗi
     raise Exception("Tất cả API Key và Model đều thất bại! Vui lòng kiểm tra lại quyền truy cập Preview.")
+
+# --- HÀM TẠO FILE WORD KẾT QUẢ (Mới thêm) ---
+def create_docx_file(text_content):
+    doc = Document()
+    doc.add_heading('KẾT QUẢ THẨM ĐỊNH GIÁO ÁN', 0)
+    
+    # Xử lý sơ bộ Markdown sang Word
+    for line in text_content.split('\n'):
+        line = line.strip()
+        if not line:
+            continue
+            
+        if line.startswith('## '):
+            doc.add_heading(line.replace('## ', ''), level=1)
+        elif line.startswith('### '):
+            doc.add_heading(line.replace('### ', ''), level=2)
+        elif line.startswith('* ') or line.startswith('- '):
+            doc.add_paragraph(line[2:], style='List Bullet')
+        else:
+            doc.add_paragraph(line)
+            
+    # Lưu vào bộ nhớ đệm (RAM)
+    bio = BytesIO()
+    doc.save(bio)
+    bio.seek(0)
+    return bio
 
 # --- GIAO DIỆN CHÍNH ---
 col1, col2 = st.columns([1, 2]) 
@@ -165,6 +194,18 @@ if uploaded_file is not None:
                             st.markdown(f"### Kết quả phân tích từ: `{used_model}`")
                             st.markdown(result_text)
                             st.caption(f"Đã xử lý thành công bởi Key: ...{used_key[-6:]}")
+                            
+                            # --- XUẤT FILE WORD (Mới thêm) ---
+                            st.divider()
+                            docx_file = create_docx_file(result_text)
+                            st.download_button(
+                                label="📥 Tải kết quả về (Word)",
+                                data=docx_file,
+                                file_name="Ket_qua_tham_dinh_giao_an.docx",
+                                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                                type="primary"
+                            )
+                            # ---------------------------------
                             
                         except Exception as e:
                             status.update(label="Thất bại!", state="error")
