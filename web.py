@@ -100,56 +100,71 @@ def generate_content_with_retry(prompt, keys_list):
     # Nếu chạy hết tất cả Key và Model mà vẫn lỗi
     raise Exception("Tất cả API Key và Model đều thất bại! Vui lòng kiểm tra lại quyền truy cập Preview.")
 
-# --- HÀM TẠO FILE WORD KẾT QUẢ (Đã chỉnh sửa theo yêu cầu) ---
+import re  # <--- NHỚ THÊM DÒNG NÀY LÊN TRÊN CÙNG FILE CỦA BẠN
+
+# --- HÀM TẠO FILE WORD KẾT QUẢ (Bản "Sạch" & Xử lý Toán) ---
 def create_docx_file(text_content):
     doc = Document()
     doc.add_heading('KẾT QUẢ THẨM ĐỊNH GIÁO ÁN', 0)
     
-    # Cờ đánh dấu: Chưa gặp tiêu đề chính thì chưa ghi (để bỏ qua đoạn chào hỏi)
+    # Danh sách các từ Tiếng Anh cần loại bỏ
+    # Bạn có thể thêm các từ khác vào danh sách này
+    english_words_to_remove = ["(Flow)", "(Creative Corner)", "Wow", "Creative Corner"]
+    
     is_main_content = False
     
     for line in text_content.split('\n'):
         line = line.strip()
-        if not line:
+        
+        # 1. Bỏ dòng trắng và dòng gạch ngang (---)
+        if not line or line == '---' or line.startswith('---'):
             continue
             
-        # 1. Logic bỏ qua đoạn chào hỏi (Intro)
-        # Chỉ bắt đầu ghi khi gặp tiêu đề mục 1 (Bắt đầu bằng ## 1)
+        # 2. Logic bỏ qua đoạn chào hỏi đầu (Chỉ lấy từ mục 1)
         if line.startswith("## 1"):
             is_main_content = True
-            
         if not is_main_content:
-            continue # Bỏ qua dòng này nếu chưa đến nội dung chính
+            continue
 
-        # 2. Xử lý làm sạch dấu ** (bôi đậm markdown) để văn bản sạch
-        # Ví dụ: "**Mục tiêu:**" sẽ thành "Mục tiêu:"
-        clean_line = line.replace('**', '').replace('__', '') 
+        # 3. XỬ LÝ LÀM SẠCH VĂN BẢN (QUAN TRỌNG)
+        
+        # a. Xóa các từ tiếng Anh trong danh sách
+        for word in english_words_to_remove:
+            line = line.replace(word, "")
+            
+        # b. Xử lý công thức Toán (LaTeX): Biến $m$ thành m
+        # Dùng Regex tìm tất cả những gì nằm trong $...$ và bỏ dấu $ đi
+        line = re.sub(r'\$(.*?)\$', r'\1', line)
 
-        # 3. Phân loại và ghi vào Word
+        # c. Xóa dấu bôi đậm (** và __)
+        clean_line = line.replace('**', '').replace('__', '').strip()
+
+        # 4. GHI VÀO FILE WORD
         if clean_line.startswith('## '):
-            # Tiêu đề lớn (Level 1)
+            # Tiêu đề 1 (Bỏ dấu ##)
             doc.add_heading(clean_line.replace('## ', ''), level=1)
             
         elif clean_line.startswith('### '):
-            # Tiêu đề nhỏ (Level 2)
+            # Tiêu đề 2 (Bỏ dấu ###)
             doc.add_heading(clean_line.replace('### ', ''), level=2)
             
         elif clean_line.startswith('* ') or clean_line.startswith('- '):
-            # Gạch đầu dòng -> Chuyển thành Bullet point trong Word
-            # Xóa ký tự * hoặc - ở đầu câu đi
-            content_text = clean_line[2:] 
-            doc.add_paragraph(content_text, style='List Bullet')
-            
+            # Gạch đầu dòng: Bỏ dấu * hoặc - và gán style Bullet
+            content_text = clean_line[2:].strip()
+            # Nếu sau khi xóa dấu * mà dòng bị rỗng thì bỏ qua
+            if content_text:
+                doc.add_paragraph(content_text, style='List Bullet')
+                
         else:
-            # Văn bản thường -> Tự động xuống dòng thành đoạn văn mới
-            doc.add_paragraph(clean_line)
+            # Đoạn văn thường
+            if clean_line:
+                doc.add_paragraph(clean_line)
             
-    # Lưu vào bộ nhớ đệm
+    # Lưu file vào RAM
     bio = BytesIO()
     doc.save(bio)
     bio.seek(0)
-    return bio
-# --- GIAO DIỆN CHÍNH ---
+    return bio# --- GIAO DIỆN CHÍNH ---
 col1, col2 = st.columns([1, 2]) 
 
 with col1:
